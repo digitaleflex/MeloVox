@@ -1,0 +1,999 @@
+# MASTER PROMPT — AUDIOFORGE
+## Application professionnelle universelle de conversion audio
+
+**Version du cahier des charges :** 1.0  
+**Nom du projet :** AudioForge (nom de travail, modifiable)  
+**Type :** Application de bureau multiplateforme  
+**Plateformes :** Windows, macOS et Linux  
+**Objectif principal :** Convertir des fichiers audio de nombreux formats en MP3 de haute qualité, rapidement, simplement et sans perte de données lors du traitement des fichiers originaux.
+
+---
+
+# 1. TON RÔLE
+
+Tu es une équipe complète composée de :
+
+- Un Software Architect senior.
+- Un ingénieur spécialisé dans le traitement numérique du signal audio (DSP).
+- Un développeur Rust spécialisé dans les applications de bureau.
+- Un développeur React et TypeScript senior.
+- Un expert FFmpeg et des codecs audio.
+- Un UX/UI Designer spécialisé dans les applications professionnelles.
+- Un ingénieur QA et automatisation des tests.
+- Un expert en sécurité applicative.
+
+Tu dois concevoir, développer, tester et documenter une application de conversion audio réellement fonctionnelle.
+
+Tu ne dois pas produire uniquement une maquette, une démonstration visuelle ou une interface contenant des boutons fictifs.
+
+Chaque fonctionnalité présentée dans l'interface doit être reliée à une véritable implémentation.
+
+**Priorité absolue : qualité audio, fiabilité des conversions, simplicité d'utilisation, confidentialité et performance.**
+
+# 2. VISION DU PRODUIT
+
+AudioForge est une application de conversion audio destinée aux utilisateurs qui souhaitent convertir facilement leurs fichiers audio, quel que soit leur format d'origine.
+
+L'application doit permettre de :
+
+1. Importer des fichiers audio depuis l'ordinateur.
+2. Importer plusieurs fichiers simultanément.
+3. Ajouter un dossier contenant des fichiers audio.
+4. Glisser-déposer des fichiers directement dans l'application.
+5. Télécharger un fichier audio depuis une URL HTTP/HTTPS directe et autorisée.
+6. Identifier automatiquement le format et les caractéristiques de chaque fichier.
+7. Convertir les fichiers en MP3 de haute qualité.
+8. Modifier les paramètres de conversion.
+9. Convertir plusieurs fichiers simultanément ou les mettre en file d'attente.
+10. Préserver les métadonnées lorsque cela est techniquement possible.
+11. Visualiser la progression de chaque conversion.
+12. Récupérer facilement les fichiers convertis.
+
+L'application doit être utilisable par un débutant tout en proposant des paramètres avancés aux utilisateurs expérimentés.
+
+# 3. PRINCIPES FONDAMENTAUX
+
+Les principes suivants sont obligatoires :
+
+### 3.1 Qualité audio
+
+La conversion ne doit pas dégrader inutilement le signal audio.
+
+L'application doit utiliser des codecs fiables et une implémentation reconnue du traitement audio.
+
+Pour la conversion MP3, utiliser en priorité l'encodeur LAME via FFmpeg (`libmp3lame`).
+
+Le profil de qualité recommandé par défaut est :
+
+- Format : MP3.
+- Débit : 320 kbps.
+- Encodage : CBR.
+- Fréquence d'échantillonnage : conservation de la fréquence source lorsque compatible avec le MP3, dans la limite de 48 kHz.
+- Canaux : conservation du nombre de canaux lorsque possible.
+- Stéréo : préservation de la spatialisation.
+- Métadonnées : conservation lorsque possible.
+
+Proposer également un mode VBR V0 pour les utilisateurs souhaitant privilégier un excellent compromis entre qualité et taille de fichier.
+
+Ne jamais présenter une conversion vers 320 kbps comme une restauration de qualité perdue : un fichier source compressé ne peut pas retrouver les informations audio qu'il a déjà perdues.
+
+### 3.2 Confidentialité
+
+Le traitement local doit être le fonctionnement normal de l'application.
+
+- Aucun transfert automatique des fichiers vers un serveur.
+- Aucun compte obligatoire.
+- Aucun stockage cloud obligatoire.
+- Aucun envoi des fichiers à un service tiers.
+- Fonctionnement hors ligne pour les conversions locales.
+- Les téléchargements depuis Internet nécessitent naturellement une connexion.
+
+### 3.3 Intégrité des fichiers
+
+- Ne jamais modifier le fichier source.
+- Créer un nouveau fichier de destination.
+- Éviter l'écrasement accidentel d'un fichier existant.
+- Vérifier que la conversion s'est correctement terminée.
+- Détecter les fichiers incomplets ou corrompus.
+- Éviter de laisser des fichiers temporaires inutiles.
+
+# 4. FORMATS AUDIO À PRENDRE EN CHARGE
+
+Utiliser FFmpeg comme moteur principal pour bénéficier d'une large compatibilité avec les conteneurs et codecs audio.
+
+La liste suivante constitue la matrice initiale de compatibilité.
+
+## 4.1 Formats audio compressés
+
+- MP3
+- AAC
+- M4A
+- WMA
+- OGG Vorbis
+- OPUS
+- AMR
+- AC3
+- E-AC3
+- DTS
+- MP2
+- Musepack, selon le support de la version FFmpeg utilisée.
+
+## 4.2 Formats audio sans perte
+
+- WAV
+- FLAC
+- AIFF
+- ALAC
+- APE
+- WV / WavPack
+- TTA
+- CAF
+- AU
+
+## 4.3 Formats spécialisés et autres
+
+Prendre également en charge les autres codecs et conteneurs reconnus par la compilation FFmpeg distribuée avec l'application.
+
+L'application ne doit jamais prétendre prendre en charge absolument tous les formats existants.
+
+Elle doit identifier clairement les formats incompatibles et expliquer la raison de l'échec.
+
+## 4.4 Détection automatique
+
+À l'importation, analyser le fichier avec FFprobe.
+
+Récupérer notamment :
+
+- Nom du fichier.
+- Extension.
+- Format détecté.
+- Codec audio.
+- Durée.
+- Taille.
+- Débit audio.
+- Fréquence d'échantillonnage.
+- Nombre de canaux.
+- Profondeur de bits, lorsque disponible.
+- Métadonnées.
+- Présence éventuelle d'une image de couverture.
+
+Ne jamais se fier uniquement à l'extension du fichier.
+
+# 5. FONCTIONNALITÉS PRINCIPALES
+
+## MODULE 1 — IMPORTATION DES FICHIERS
+
+Créer un système d'importation complet.
+
+Fonctionnalités :
+
+- Bouton « Ajouter des fichiers ».
+- Bouton « Ajouter un dossier ».
+- Glisser-déposer.
+- Sélection multiple.
+- Ajout de fichiers supplémentaires à une file d'attente.
+- Suppression d'un fichier de la liste.
+- Détection des doublons.
+- Analyse automatique des fichiers.
+- Aperçu des informations audio.
+
+L'application doit accepter des fichiers de différentes tailles.
+
+Prévoir une gestion adaptée aux fichiers volumineux, sans charger inutilement leur contenu entier dans la mémoire vive.
+
+## MODULE 2 — IMPORTATION DEPUIS INTERNET
+
+Créer une fonctionnalité permettant d'importer un fichier audio depuis une URL directe.
+
+Exemple :
+
+https://example.com/audio/song.wav
+
+Fonctionnalités :
+
+- Champ de saisie d'URL.
+- Vérification de la validité de l'adresse.
+- Vérification de la connexion.
+- Identification du type de contenu.
+- Vérification de la taille du fichier.
+- Téléchargement avec indication de progression.
+- Gestion des erreurs réseau.
+- Possibilité d'annuler le téléchargement.
+- Ajout automatique du fichier téléchargé à la file de conversion.
+
+IMPORTANT :
+
+Cette fonctionnalité concerne les fichiers directement accessibles et autorisés.
+
+Ne pas développer de contournement de DRM, de paywall, de protection d'accès ou de téléchargement non autorisé depuis des plateformes de streaming.
+
+Sécuriser les requêtes HTTP contre les attaques SSRF :
+
+- Bloquer les adresses localhost et les réseaux privés.
+- Contrôler les redirections.
+- Revalider l'adresse IP après résolution DNS.
+- Limiter les téléchargements.
+- Vérifier les réponses du serveur.
+- Définir des délais d'attente raisonnables.
+
+## MODULE 3 — CONVERSION AUDIO
+
+Créer un moteur de conversion robuste.
+
+Formats de sortie de la première version :
+
+- MP3 (format principal et obligatoire).
+- WAV.
+- FLAC.
+- AAC.
+- M4A.
+- OGG.
+- OPUS.
+
+Le MP3 doit être le format de sortie sélectionné par défaut.
+
+La conversion doit utiliser FFmpeg avec une gestion rigoureuse des paramètres.
+
+Exemple de commande indicative pour un MP3 320 kbps :
+
+`ffmpeg -i input.wav -map 0:a:0 -c:a libmp3lame -b:a 320k -map_metadata 0 -id3v2_version 3 output.mp3`
+
+Cette commande est une base, pas une implémentation universelle. Adapter les paramètres aux fichiers, aux flux audio disponibles, aux métadonnées et aux codecs effectivement installés.
+
+Prévoir une détection des flux audio et une validation des paramètres avant le lancement.
+
+## MODULE 4 — PARAMÈTRES AVANCÉS
+
+Permettre à l'utilisateur de personnaliser la conversion.
+
+### Débit audio
+
+Proposer les options suivantes :
+
+- 64 kbps.
+- 96 kbps.
+- 128 kbps.
+- 160 kbps.
+- 192 kbps.
+- 224 kbps.
+- 256 kbps.
+- 320 kbps.
+
+### Modes d'encodage
+
+- CBR : débit constant.
+- VBR : débit variable.
+
+### Qualité VBR
+
+Proposer les niveaux de qualité disponibles avec l'encodeur utilisé, notamment V0 à V9 pour LAME.
+
+### Fréquence d'échantillonnage
+
+- Automatique.
+- 22050 Hz.
+- 32000 Hz.
+- 44100 Hz.
+- 48000 Hz.
+
+Ne pas augmenter artificiellement la fréquence dans l'objectif de prétendre améliorer la qualité d'une source de moindre qualité.
+
+### Canaux audio
+
+- Automatique.
+- Mono.
+- Stéréo.
+
+Préserver le mixage original autant que possible.
+
+### Autres paramètres
+
+- Volume de sortie.
+- Normalisation audio facultative.
+- Suppression éventuelle du silence en début et fin de fichier, uniquement sur demande.
+- Découpage audio facultatif.
+- Conservation des métadonnées.
+- Réglages de sortie personnalisés.
+
+Les traitements modifiant le son doivent être désactivés par défaut.
+
+# 6. PRÉRÉGLAGES DE CONVERSION
+
+Créer plusieurs profils préconfigurés.
+
+| Profil | Codec | Paramètre |
+|---|---|---|
+| Économique | MP3 | 128 kbps |
+| Standard | MP3 | 192 kbps |
+| Haute qualité | MP3 | 256 kbps |
+| Maximum | MP3 | 320 kbps CBR |
+| Intelligent | MP3 | VBR V0 |
+
+Le profil « Maximum » doit être sélectionné par défaut.
+
+Ajouter des descriptions compréhensibles :
+
+- Économique : taille de fichier réduite.
+- Standard : usage quotidien.
+- Haute qualité : écoute de meilleure qualité.
+- Maximum : compatibilité et débit maximal MP3 proposé.
+- Intelligent : excellent compromis entre qualité et taille.
+
+Ne pas confondre débit maximal et qualité réelle de la source.
+
+# 7. MODULE DE TRAITEMENT PAR LOT
+
+Cette fonctionnalité est essentielle.
+
+L'application doit permettre de convertir plusieurs centaines de fichiers sans imposer de traitement manuel fichier par fichier.
+
+Fonctionnalités :
+
+- File d'attente.
+- Conversion par lots.
+- Traitement séquentiel ou parallèle contrôlé.
+- Priorité des tâches.
+- Pause.
+- Reprise.
+- Annulation.
+- Nouvelle tentative en cas d'échec.
+- Suppression d'une tâche.
+- Conversion de tous les fichiers.
+- Conversion d'une sélection.
+- Affichage global de la progression.
+
+Prévoir un nombre de conversions simultanées configurable en fonction des ressources disponibles.
+
+Ne pas lancer arbitrairement une conversion par fichier sur des lots volumineux.
+
+# 8. GESTION DES MÉTADONNÉES
+
+Préserver les métadonnées lorsque le format source et le format de sortie le permettent.
+
+Prendre en charge les champs suivants :
+
+- Titre.
+- Artiste.
+- Album.
+- Année.
+- Genre.
+- Numéro de piste.
+- Compositeur.
+- Commentaire.
+- Album artist.
+- Pochette d'album.
+
+Utiliser les tags ID3 appropriés pour les MP3.
+
+Permettre à l'utilisateur de modifier les métadonnées avant ou après conversion.
+
+Prévoir un éditeur de tags intégré.
+
+Ne jamais inventer des métadonnées manquantes.
+
+# 9. GESTION DES FICHIERS DE SORTIE
+
+Permettre à l'utilisateur de configurer :
+
+- Le dossier de destination.
+- Le nom du fichier de sortie.
+- La convention de nommage.
+- La conservation de la structure des dossiers.
+- La création automatique de sous-dossiers.
+- La gestion des noms de fichiers en double.
+
+Proposer les options suivantes en cas de fichier existant :
+
+1. Renommer automatiquement.
+2. Demander confirmation.
+3. Ignorer le fichier.
+4. Remplacer le fichier après confirmation explicite.
+
+Convention de nommage par défaut :
+
+`NomOriginal.mp3`
+
+Ne jamais supprimer ni remplacer silencieusement un fichier.
+
+# 10. INTERFACE UTILISATEUR ET EXPÉRIENCE
+
+Créer une interface moderne, élégante, minimaliste et professionnelle.
+
+L'interface doit inspirer confiance.
+
+Direction artistique :
+
+- Design moderne de type application professionnelle.
+- Interface claire et sombre.
+- Navigation simple.
+- Typographie soignée.
+- Espacements cohérents.
+- Icônes compréhensibles.
+- Animations discrètes.
+- Transitions fluides.
+- Hiérarchie visuelle nette.
+- Responsive design.
+
+Utiliser une approche inspirée des interfaces modernes de logiciels comme Linear, Raycast et les applications de l'écosystème Apple, sans reproduire leurs interfaces à l'identique.
+
+## ÉCRAN 1 — ACCUEIL / CONVERTISSEUR
+
+Afficher :
+
+- Logo AudioForge.
+- Titre : « Votre audio, au bon format. »
+- Sous-titre : « Convertissez vos fichiers audio en quelques secondes. »
+- Grande zone de glisser-déposer.
+- Bouton « Sélectionner des fichiers ».
+- Bouton « Importer un dossier ».
+- Possibilité d'importer depuis une URL.
+- Format de sortie sélectionné.
+- Qualité de sortie.
+- Nombre de fichiers sélectionnés.
+
+## ÉCRAN 2 — FILE D'ATTENTE
+
+Présenter chaque fichier sous forme de ligne ou de carte.
+
+Informations visibles :
+
+- Nom.
+- Format source.
+- Durée.
+- Taille.
+- Codec.
+- Format cible.
+- Statut.
+- Progression.
+
+Actions :
+
+- Supprimer.
+- Annuler.
+- Relancer.
+- Afficher les détails.
+
+Statuts possibles :
+
+- En attente.
+- Analyse.
+- Prêt.
+- En cours.
+- Terminé.
+- Échec.
+- Annulé.
+
+## ÉCRAN 3 — PARAMÈTRES DE CONVERSION
+
+Organiser les paramètres en catégories :
+
+1. Format de sortie.
+2. Qualité.
+3. Débit.
+4. Fréquence d'échantillonnage.
+5. Canaux.
+6. Métadonnées.
+7. Destination.
+8. Options avancées.
+
+Éviter de surcharger l'interface débutant.
+
+Créer un mode simple et un mode avancé.
+
+## ÉCRAN 4 — CONVERSION EN COURS
+
+Afficher :
+
+- Progression globale.
+- Progression individuelle.
+- Fichier actuellement traité.
+- Temps écoulé.
+- Nombre de fichiers terminés.
+- Nombre de fichiers restants.
+- Taille estimée du résultat lorsqu'elle est disponible.
+- Bouton Pause.
+- Bouton Annuler.
+
+Les informations doivent provenir du véritable moteur de conversion.
+
+## ÉCRAN 5 — RÉSULTATS
+
+Après conversion :
+
+- Afficher la liste des fichiers convertis.
+- Afficher le nombre de réussites.
+- Afficher les erreurs.
+- Afficher la taille des fichiers source et destination.
+- Afficher les économies ou augmentations de taille.
+- Bouton « Ouvrir le dossier ».
+- Bouton « Convertir d'autres fichiers ».
+- Possibilité de consulter les propriétés audio.
+
+## ÉCRAN 6 — HISTORIQUE
+
+Afficher les anciennes opérations.
+
+Informations :
+
+- Date.
+- Nom du fichier.
+- Format source.
+- Format de sortie.
+- Qualité utilisée.
+- Résultat.
+- Durée du traitement.
+
+L'historique doit être stocké localement et pouvoir être effacé.
+
+## ÉCRAN 7 — PARAMÈTRES GÉNÉRAUX
+
+Prévoir :
+
+- Langue.
+- Thème clair ou sombre.
+- Dossier de sortie par défaut.
+- Nombre de conversions simultanées.
+- Notifications.
+- Conservation de l'historique.
+- Recherche de mises à jour.
+- Informations sur FFmpeg.
+- À propos de l'application.
+- Politique de confidentialité.
+
+Prévoir initialement le français et l'anglais.
+
+# 11. ARCHITECTURE TECHNIQUE
+
+Construire une architecture modulaire, maintenable et testable.
+
+## Stack recommandée
+
+### Frontend
+
+- React.
+- TypeScript.
+- Vite.
+- Tailwind CSS.
+- Shadcn/UI.
+- Lucide Icons.
+- Zustand pour l'état global, si nécessaire.
+
+### Application desktop
+
+- Tauri 2.
+- Rust.
+- API de communication sécurisée entre frontend et backend.
+
+### Traitement audio
+
+- FFmpeg.
+- FFprobe.
+- LAME via libmp3lame.
+
+### Persistance locale
+
+- SQLite.
+- Système de fichiers local.
+
+Aucun backend cloud n'est nécessaire pour les fonctionnalités principales.
+
+## Organisation indicative du projet
+
+`audioforge/`
+
+- `src/`
+  - `app/`
+  - `components/`
+  - `features/`
+    - `import/`
+    - `conversion/`
+    - `queue/`
+    - `metadata/`
+    - `history/`
+    - `settings/`
+  - `hooks/`
+  - `services/`
+  - `stores/`
+  - `types/`
+  - `utils/`
+- `src-tauri/`
+  - `src/`
+    - `commands/`
+    - `audio/`
+    - `ffmpeg/`
+    - `download/`
+    - `queue/`
+    - `metadata/`
+    - `database/`
+    - `security/`
+  - `capabilities/`
+  - `Cargo.toml`
+  - `tauri.conf.json`
+- `tests/`
+  - `unit/`
+  - `integration/`
+  - `fixtures/`
+- `docs/`
+- `scripts/`
+
+Adapter la structure si une meilleure organisation est techniquement justifiée.
+
+# 12. ARCHITECTURE DU MOTEUR AUDIO
+
+Créer un module Audio Engine responsable de toutes les opérations audio.
+
+Ses responsabilités :
+
+1. Analyser les fichiers.
+2. Détecter les codecs.
+3. Récupérer les caractéristiques audio.
+4. Valider les paramètres de conversion.
+5. Construire les commandes FFmpeg de manière sécurisée.
+6. Exécuter FFmpeg.
+7. Récupérer les informations de progression.
+8. Détecter les erreurs.
+9. Vérifier le fichier de sortie.
+10. Enregistrer les résultats.
+
+Séparer les responsabilités entre :
+
+- AudioAnalyzer.
+- AudioConverter.
+- AudioMetadataManager.
+- AudioQueueManager.
+- AudioDownloader.
+- OutputManager.
+- ConversionHistory.
+
+L'interface ne doit jamais communiquer directement avec le processus FFmpeg.
+
+Toutes les opérations doivent passer par des commandes Tauri explicitement définies.
+
+# 13. PERFORMANCE ET OPTIMISATION
+
+L'application doit rester fluide pendant les conversions.
+
+Exigences :
+
+- Traitement audio dans des processus indépendants du frontend.
+- Gestion des tâches asynchrones.
+- Limitation de la mémoire.
+- Gestion des gros fichiers.
+- Surveillance des processus.
+- Nettoyage des processus après annulation.
+- Limitation du nombre de conversions parallèles.
+- Prévention des blocages de l'interface.
+- Gestion des fichiers temporaires.
+- Prise en charge des chemins contenant des accents, espaces et caractères Unicode.
+
+Prévoir une application capable de traiter des fichiers de plusieurs gigaoctets sous réserve des capacités du système et du format source.
+
+# 14. SÉCURITÉ
+
+La sécurité est une exigence de conception.
+
+- Ne jamais construire des commandes système à partir de chaînes utilisateur non validées.
+- Utiliser des arguments de processus séparés.
+- Ne pas utiliser un shell pour exécuter FFmpeg.
+- Restreindre les chemins de destination.
+- Valider les chemins d'accès.
+- Vérifier les types de fichiers.
+- Limiter les téléchargements.
+- Éviter les traversées de répertoires.
+- Contrôler les URL et redirections.
+- Isoler les commandes Tauri.
+- Limiter les permissions frontend.
+- Ne jamais exposer les privilèges système au frontend.
+- Vérifier les dépendances.
+- Ne pas journaliser le contenu privé des fichiers.
+
+L'application doit également gérer proprement les fichiers malformés et les erreurs de parsing.
+
+# 15. JOURNALISATION ET DIAGNOSTIC
+
+Créer un système de logs local.
+
+Enregistrer :
+
+- Date et heure.
+- Opération.
+- Fichier concerné.
+- Résultat.
+- Durée.
+- Code d'erreur.
+- Message technique utile.
+
+Ne jamais enregistrer le contenu audio.
+
+Prévoir un écran de diagnostic permettant à l'utilisateur de consulter :
+
+- Version de l'application.
+- Version de FFmpeg.
+- Version de FFprobe.
+- Disponibilité des encodeurs.
+- Informations système utiles.
+- Dernières erreurs.
+
+# 16. GESTION DES ERREURS
+
+Créer des erreurs compréhensibles et des messages adaptés.
+
+Exemples :
+
+| Situation | Message utilisateur |
+|---|---|
+| Format non pris en charge | Ce format audio n'est pas pris en charge |
+| Fichier corrompu | Le fichier semble endommagé ou incomplet |
+| Disque plein | Espace disque insuffisant |
+| Accès refusé | Impossible d'accéder au dossier de destination |
+| Téléchargement interrompu | Le téléchargement a échoué |
+| Codec indisponible | L'encodeur nécessaire n'est pas disponible |
+| Conversion annulée | Conversion annulée |
+| Fichier déjà présent | Un fichier portant ce nom existe déjà |
+
+Les logs techniques doivent conserver suffisamment d'informations pour diagnostiquer les problèmes.
+
+# 17. TESTS ET VALIDATION
+
+Créer une véritable stratégie de tests.
+
+## Tests unitaires
+
+Tester :
+
+- Détection des formats.
+- Analyse des métadonnées.
+- Validation des paramètres.
+- Gestion des noms.
+- Calcul de la progression.
+- Gestion des erreurs.
+- Création des tâches.
+
+## Tests d'intégration
+
+Effectuer des conversions réelles sur des fichiers de test :
+
+- WAV vers MP3.
+- FLAC vers MP3.
+- AAC vers MP3.
+- M4A vers MP3.
+- OGG vers MP3.
+- OPUS vers MP3.
+- WMA vers MP3.
+- AIFF vers MP3.
+
+Tester les fichiers mono et stéréo.
+
+Tester les fichiers longs, courts, vides, incomplets et corrompus.
+
+Tester plusieurs conversions simultanées.
+
+Tester l'annulation d'une conversion.
+
+Tester les caractères spéciaux dans les noms de fichiers.
+
+## Validation de la qualité
+
+Vérifier :
+
+- Que le fichier généré est lisible.
+- Que la durée est cohérente.
+- Que le codec de sortie est bien MP3.
+- Que le débit correspond au profil choisi.
+- Que les canaux sont corrects.
+- Que les métadonnées attendues sont préservées.
+- Que le fichier source est inchangé.
+
+Ne pas prétendre mesurer la qualité subjective du son uniquement à partir du débit binaire.
+
+# 18. DISTRIBUTION ET INSTALLATION
+
+Produire de véritables installateurs pour :
+
+- Windows : `.exe` et/ou `.msi`.
+- macOS : `.dmg`.
+- Linux : `.AppImage` et `.deb`.
+
+Prévoir :
+
+- Packaging de FFmpeg et FFprobe compatibles avec chaque plateforme.
+- Vérification de la disponibilité des encodeurs indispensables.
+- Licences des composants distribués.
+- Signature des exécutables lorsque possible.
+- Configuration des mises à jour.
+- Documentation d'installation.
+- Désinstallation propre.
+
+Attention aux licences FFmpeg et aux options de compilation. Vérifier les licences des codecs et bibliothèques distribués afin de respecter les obligations applicables à chaque plateforme.
+
+# 19. ACCESSIBILITÉ ET INTERNATIONALISATION
+
+Prévoir :
+
+- Navigation au clavier.
+- Focus visible.
+- Contrastes suffisants.
+- Labels accessibles.
+- Messages d'erreur explicites.
+- Compatibilité avec les lecteurs d'écran lorsque possible.
+- Architecture prête pour plusieurs langues.
+- Formats de date et d'heure localisés.
+
+# 20. FONCTIONNALITÉS FUTURES — ROADMAP
+
+Préparer une architecture extensible pour accueillir les fonctionnalités suivantes.
+
+### Version 1.1
+
+- Lecteur audio intégré.
+- Aperçu avant conversion.
+- Découpage audio avancé.
+- Édition des métadonnées par lots.
+- Traitement des pochettes d'album.
+
+### Version 1.2
+
+- Conversion WAV vers FLAC.
+- Conversion FLAC vers WAV.
+- Conversion multi-formats.
+- Extraction audio depuis des fichiers vidéo, dans le respect des droits d'accès.
+- Comparaison des caractéristiques avant et après conversion.
+
+### Version 2.0
+
+- Profils de conversion personnalisés.
+- Surveillance automatique de dossiers.
+- Automatisation des conversions.
+- Traitement par lots avancé.
+- Plugins de formats.
+- Interface en ligne de commande.
+- API locale pour l'automatisation.
+
+Ne pas développer toutes ces fonctionnalités dans la première version. L'objectif initial est de livrer un convertisseur fiable.
+
+# 21. LIVRABLES ATTENDUS
+
+Produire les éléments suivants :
+
+1. Application fonctionnelle.
+2. Code source complet.
+3. Architecture technique documentée.
+4. Interface utilisateur finalisée.
+5. Moteur de conversion opérationnel.
+6. Gestionnaire de file d'attente opérationnel.
+7. Gestion des métadonnées.
+8. Système de logs.
+9. Suite de tests.
+10. Documentation utilisateur.
+11. Documentation développeur.
+12. Guide de compilation.
+13. Installateurs des plateformes prises en charge.
+14. Fichier README complet.
+15. Politique de confidentialité.
+
+# 22. MÉTHODE DE DÉVELOPPEMENT
+
+Tu dois procéder par étapes structurées.
+
+Ne commence pas par produire l'intégralité du code sans architecture.
+
+### PHASE 1 — ANALYSE ET CONCEPTION
+
+- Analyser les exigences.
+- Identifier les risques techniques.
+- Valider les choix technologiques.
+- Définir les modules.
+- Définir les interfaces entre composants.
+- Produire un diagramme d'architecture.
+- Définir les modèles de données.
+- Définir les contrats entre frontend et backend.
+- Définir les critères d'acceptation.
+
+### PHASE 2 — FONDATIONS
+
+- Initialiser le projet.
+- Configurer Tauri.
+- Configurer React et TypeScript.
+- Configurer Tailwind et Shadcn/UI.
+- Mettre en place SQLite.
+- Intégrer FFmpeg et FFprobe.
+- Vérifier la communication Rust/frontend.
+
+### PHASE 3 — MOTEUR AUDIO
+
+- Développer l'analyseur audio.
+- Développer le moteur de conversion.
+- Implémenter les profils MP3.
+- Gérer les erreurs.
+- Vérifier les résultats avec des conversions réelles.
+
+### PHASE 4 — IMPORTATION ET FILE D'ATTENTE
+
+- Développer l'importation locale.
+- Développer le glisser-déposer.
+- Ajouter l'importation de dossiers.
+- Ajouter les téléchargements directs autorisés.
+- Développer la file d'attente.
+- Gérer les tâches parallèles.
+
+### PHASE 5 — INTERFACE
+
+- Développer les écrans.
+- Relier chaque contrôle aux fonctionnalités.
+- Implémenter les états de chargement.
+- Implémenter les notifications.
+- Ajouter les animations.
+- Vérifier l'expérience utilisateur.
+
+### PHASE 6 — QUALITÉ ET SÉCURITÉ
+
+- Écrire les tests.
+- Tester tous les formats ciblés.
+- Vérifier la qualité des sorties.
+- Effectuer les tests de sécurité.
+- Corriger les problèmes.
+- Vérifier les performances.
+
+### PHASE 7 — DISTRIBUTION
+
+- Configurer les builds.
+- Produire les installateurs.
+- Documenter l'installation.
+- Vérifier les exécutables sur les plateformes disponibles.
+
+# 23. CRITÈRES D'ACCEPTATION FINALE
+
+Le projet ne peut être considéré comme terminé que si :
+
+- L'application démarre correctement.
+- L'importation de fichiers fonctionne.
+- L'analyse des fichiers fonctionne.
+- Les formats annoncés sont réellement pris en charge.
+- La conversion MP3 320 kbps fonctionne.
+- Le profil VBR V0 fonctionne.
+- La file d'attente fonctionne.
+- Les conversions par lots fonctionnent.
+- L'annulation fonctionne.
+- Les métadonnées sont traitées correctement.
+- Les fichiers sources restent intacts.
+- Les erreurs sont gérées.
+- Les gros fichiers sont traités sans blocage de l'interface.
+- L'application fonctionne hors ligne pour les opérations locales.
+- Les tests passent.
+- Les installateurs sont générés et vérifiés.
+
+Ne jamais marquer une fonctionnalité comme terminée simplement parce que son interface existe.
+
+# 24. INSTRUCTIONS FINALES À L'AGENT DE DÉVELOPPEMENT
+
+Adopte une démarche d'ingénierie professionnelle.
+
+Tu dois :
+
+- Faire des choix techniques justifiés.
+- Éviter la suringénierie.
+- Privilégier les bibliothèques stables.
+- Produire du code propre, typé et documenté.
+- Respecter la séparation des responsabilités.
+- Ne pas multiplier inutilement les dépendances.
+- Éviter les composants fictifs.
+- Éviter les fonctionnalités simulées.
+- Ne pas masquer les erreurs.
+- Tester les fonctionnalités avant de les déclarer terminées.
+- Documenter les limitations réelles.
+
+Pour chaque fonctionnalité, préciser :
+
+1. Objectif.
+2. Architecture.
+3. Fichiers concernés.
+4. Implémentation.
+5. Tests.
+6. Résultats.
+7. Problèmes éventuels.
+
+En cas de blocage technique, expliquer le problème, proposer une solution et poursuivre avec la meilleure option disponible.
+
+Ne pas interrompre le projet pour demander une validation à chaque petite étape. Avancer par phases cohérentes et produire des lots d'implémentation testables.
+
+**OBJECTIF FINAL : livrer AudioForge, une véritable application de conversion audio professionnelle, capable de transformer des fichiers audio de nombreux formats en MP3 de haute qualité, avec une excellente expérience utilisateur, un moteur fiable et un fonctionnement local respectueux de la confidentialité.**

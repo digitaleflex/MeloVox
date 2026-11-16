@@ -1,0 +1,6 @@
+{
+  "name": "MeloVox",
+  "description": "MeloVox by E-FLEX — Atelier intelligent de conversion, d'analyse qualité et de traitement audio local.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
